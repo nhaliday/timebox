@@ -1,3 +1,4 @@
+import glob
 import rumps
 import time
 import subprocess
@@ -5,13 +6,17 @@ import shlex
 import sqlite3
 import os
 
-THINGS_SQLITE_PATH = "~/Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac/ThingsData-4R6L5/Things Database.thingsdatabase/main.sqlite"
+THINGS_SQLITE_PATH = "~/Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac/ThingsData-*/Things Database.thingsdatabase/main.sqlite"
+
 
 def timez():
     return time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
 
+
 def get_things_today_tasks(index=0, complete_task=False):
-    conn = sqlite3.connect(os.path.expanduser(THINGS_SQLITE_PATH))
+    paths = glob.glob(os.path.expanduser(THINGS_SQLITE_PATH))
+    assert len(paths) == 1
+    conn = sqlite3.connect(paths[0])
     sql = (
         "SELECT\n"
         "            TAG.title,\n"
@@ -92,9 +97,7 @@ class TimerApp(object):
             title="Sync", callback=lambda _: self.sync_data(), key="r"
         )
 
-        self.sum_menu_item = rumps.MenuItem(
-            title="sum_total_time", callback=None
-        )
+        self.sum_menu_item = rumps.MenuItem(title="sum_total_time", callback=None)
 
         self.app.menu = [
             self.start_pause_button,
@@ -123,9 +126,9 @@ class TimerApp(object):
             [x[0] for x in self.things_processed_tasks.values()]
         )
 
-        self.app.menu[
-            "sum_total_time"
-        ].title = f"{hour_formatter(self.sum_of_tasks_scheduled)}"
+        self.app.menu["sum_total_time"].title = (
+            f"{hour_formatter(self.sum_of_tasks_scheduled)}"
+        )
 
         if hasattr(self, "things_buttons"):
             prev_things_buttons = self.things_buttons
@@ -144,9 +147,9 @@ class TimerApp(object):
             self.app.menu.insert_after("sum_total_time", menu_item)
 
     def run(self):
-        self.app.menu[
-            "sum_total_time"
-        ].title = f"{hour_formatter(self.sum_of_tasks_scheduled)}"
+        self.app.menu["sum_total_time"].title = (
+            f"{hour_formatter(self.sum_of_tasks_scheduled)}"
+        )
         self.app.run()
 
     def set_mins(self, sender, interval, task_url):
@@ -218,11 +221,9 @@ class TimerApp(object):
         for key, btn in self.buttons.items():
             btn.set_callback(self.buttons_callback[btn.title])
 
-        for (title, btn) in self.things_buttons.items():
+        for title, btn in self.things_buttons.items():
             btn.set_callback(
-                lambda _: self.set_mins(
-                    _, self.things_processed_tasks[title], None
-                )
+                lambda _: self.set_mins(_, self.things_processed_tasks[title], None)
             )
 
         self.start_pause_button.title = "Start Timer"
